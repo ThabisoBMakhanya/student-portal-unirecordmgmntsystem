@@ -38,6 +38,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          backgroundImage: 'linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), url("/login-bg.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
         }}
       >
         {/* Header */}
@@ -51,7 +56,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           sx={{
             flexGrow: 1,
             p: { xs: 2, sm: 3 },
-            bgcolor: 'background.default',
+            color: '#fff',
+            '&& .MuiTypography-root': {
+              color: '#fff',
+            },
+            '&& .MuiCard-root, && .MuiPaper-root': {
+              color: 'initial',
+            },
+            '&& .MuiCard-root .MuiTypography-root, && .MuiPaper-root .MuiTypography-root': {
+              color: 'initial',
+            },
           }}
         >
           {children}

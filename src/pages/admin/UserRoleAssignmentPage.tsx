@@ -48,6 +48,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { format, parseISO } from 'date-fns';
 
+import { apiClient } from '@/services/api';
 import rbacService from '@/services/rbacService';
 import { UserRole, Role, RoleAssignment, UserRoleFilters } from '@/types/rbac';
 import PermissionGuard from '@/components/RBAC/PermissionGuard';
@@ -88,12 +89,21 @@ const UserRoleAssignmentPage: React.FC = () => {
     queryFn: () => rbacService.getRoles({ isActive: true, limit: 1000 }),
   });
 
-  // Mock users data (in real app, this would come from user service)
-  const mockUsers = [
-    { id: '1', name: 'John Doe', email: 'john.doe@university.edu', department: 'Computer Science' },
-    { id: '2', name: 'Jane Smith', email: 'jane.smith@university.edu', department: 'Mathematics' },
-    { id: '3', name: 'Bob Johnson', email: 'bob.johnson@university.edu', department: 'Physics' },
-  ];
+  // Fetch users for assignment
+  const usersQuery = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/admin/users');
+      return response.data.data.users;
+    },
+  });
+
+  const users = (usersQuery.data || []).map((u: any) => ({
+    id: u.id,
+    name: u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.email,
+    email: u.email,
+    department: u.department || '',
+  }));
 
   // Assign role mutation
   const assignRoleMutation = useMutation({
@@ -167,12 +177,12 @@ const UserRoleAssignmentPage: React.FC = () => {
   };
 
   const getUserName = (userId: string) => {
-    const user = mockUsers.find(u => u.id === userId);
+    const user = users.find(u => u.id === userId);
     return user ? user.name : 'Unknown User';
   };
 
   const getUserEmail = (userId: string) => {
-    const user = mockUsers.find(u => u.id === userId);
+    const user = users.find(u => u.id === userId);
     return user ? user.email : '';
   };
 
@@ -186,7 +196,7 @@ const UserRoleAssignmentPage: React.FC = () => {
     return new Date() > new Date(expiresAt);
   };
 
-  if (userRolesQuery.isLoading || rolesQuery.isLoading) {
+  if (userRolesQuery.isLoading || rolesQuery.isLoading || usersQuery.isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <LoadingSpinner message="Loading user roles..." />
@@ -445,9 +455,9 @@ const UserRoleAssignmentPage: React.FC = () => {
             <Grid container spacing={3} sx={{ mt: 1 }}>
               <Grid item xs={12}>
                 <Autocomplete
-                  options={mockUsers}
+                  options={users}
                   getOptionLabel={(option) => `${option.name} (${option.email})`}
-                  value={mockUsers.find(u => u.id === assignmentForm.userId) || null}
+                  value={users.find(u => u.id === assignmentForm.userId) || null}
                   onChange={(_, value) => setAssignmentForm(prev => ({ 
                     ...prev, 
                     userId: value?.id || '' 

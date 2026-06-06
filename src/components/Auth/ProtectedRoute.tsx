@@ -27,6 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         updateUser(data);
       }
       setLoading(false);
+      useAuthStore.getState().loadUserPermissions();
     },
   });
 

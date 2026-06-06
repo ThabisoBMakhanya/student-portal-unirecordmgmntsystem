@@ -51,13 +51,18 @@ import { SupportTicket } from '@/services/supportService';
 
 const SupportTickets: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [ticketNumber, setTicketNumber] = useState('');
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
     category: 'general',
+    subCategory: '',
     priority: 'medium',
+    building: '',
+    roomNumber: '',
     attachments: [] as File[],
   });
   // Real tickets data
@@ -144,14 +149,30 @@ const SupportTickets: React.FC = () => {
     });
   };
 
+  const generateTicketNumber = () => {
+    const year = new Date().getFullYear();
+    const seq = Math.floor(Math.random() * 9000) + 1000;
+    const categoryPrefix = newTicket.category === 'it' ? 'IT' :
+      newTicket.category === 'facilities' ? 'FAC' :
+      newTicket.category === 'academic' ? 'ACA' :
+      newTicket.category === 'administrative' ? 'ADM' :
+      newTicket.category === 'safety' ? 'SEC' : 'GEN';
+    return `#${categoryPrefix}-${year}-${seq}`;
+  };
+
   const handleCreateTicket = () => {
-    console.log('Creating ticket...', newTicket);
+    const newTicketNumber = generateTicketNumber();
+    setTicketNumber(newTicketNumber);
     setCreateDialogOpen(false);
+    setSuccessDialogOpen(true);
     setNewTicket({
       title: '',
       description: '',
       category: 'general',
+      subCategory: '',
       priority: 'medium',
+      building: '',
+      roomNumber: '',
       attachments: [],
     });
   };
@@ -368,15 +389,78 @@ const SupportTickets: React.FC = () => {
                   label="Category"
                   onChange={(e) => setNewTicket(prev => ({ ...prev, category: e.target.value }))}
                 >
-                  <MenuItem value="academic">Academic</MenuItem>
-                  <MenuItem value="technical">Technical</MenuItem>
-                  <MenuItem value="financial">Financial</MenuItem>
-                  <MenuItem value="administrative">Administrative</MenuItem>
+                  <MenuItem value="facilities">Facilities (AC, lights, plumbing, furniture)</MenuItem>
+                  <MenuItem value="it">IT (WiFi, printer, computer, projector)</MenuItem>
+                  <MenuItem value="academic">Academic (lecturer issue, timetable conflict)</MenuItem>
+                  <MenuItem value="administrative">Administrative (registration, fee dispute)</MenuItem>
+                  <MenuItem value="safety">Safety & Security</MenuItem>
                   <MenuItem value="general">General</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Issue Type</InputLabel>
+                <Select
+                  value={newTicket.subCategory}
+                  label="Issue Type"
+                  onChange={(e) => setNewTicket(prev => ({ ...prev, subCategory: e.target.value }))}
+                  disabled={!newTicket.category || newTicket.category === 'general'}
+                >
+                  {newTicket.category === 'facilities' && (
+                    <>
+                      <MenuItem value="ac">Air Conditioning</MenuItem>
+                      <MenuItem value="lights">Lighting</MenuItem>
+                      <MenuItem value="plumbing">Plumbing</MenuItem>
+                      <MenuItem value="furniture">Furniture</MenuItem>
+                      <MenuItem value="cleaning">Cleaning / Sanitation</MenuItem>
+                      <MenuItem value="other_facility">Other Facility Issue</MenuItem>
+                    </>
+                  )}
+                  {newTicket.category === 'it' && (
+                    <>
+                      <MenuItem value="wifi">WiFi / Internet</MenuItem>
+                      <MenuItem value="printer">Printer</MenuItem>
+                      <MenuItem value="computer">Computer / Lab Equipment</MenuItem>
+                      <MenuItem value="projector">Projector / AV Equipment</MenuItem>
+                      <MenuItem value="software">Software / System Access</MenuItem>
+                      <MenuItem value="other_it">Other IT Issue</MenuItem>
+                    </>
+                  )}
+                  {newTicket.category === 'academic' && (
+                    <>
+                      <MenuItem value="lecturer">Lecturer Issue</MenuItem>
+                      <MenuItem value="timetable">Timetable Conflict</MenuItem>
+                      <MenuItem value="curriculum">Curriculum / Course Content</MenuItem>
+                      <MenuItem value="assessment">Assessment / Grade Issue</MenuItem>
+                      <MenuItem value="other_academic">Other Academic Issue</MenuItem>
+                    </>
+                  )}
+                  {newTicket.category === 'administrative' && (
+                    <>
+                      <MenuItem value="registration">Registration</MenuItem>
+                      <MenuItem value="fee_dispute">Fee Dispute</MenuItem>
+                      <MenuItem value="documents">Documents / Transcripts</MenuItem>
+                      <MenuItem value="graduation">Graduation / Clearance</MenuItem>
+                      <MenuItem value="other_admin">Other Administrative Issue</MenuItem>
+                    </>
+                  )}
+                  {newTicket.category === 'safety' && (
+                    <>
+                      <MenuItem value="theft">Theft / Suspicious Activity</MenuItem>
+                      <MenuItem value="harassment">Harassment / Bullying</MenuItem>
+                      <MenuItem value="emergency">Emergency / Medical</MenuItem>
+                      <MenuItem value="lighting_safety">Poor Lighting / Dark Areas</MenuItem>
+                      <MenuItem value="other_safety">Other Safety Concern</MenuItem>
+                    </>
+                  )}
+                  {newTicket.category === 'general' && (
+                    <MenuItem value="general">General Inquiry</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Priority</InputLabel>
@@ -392,11 +476,44 @@ const SupportTickets: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Building</InputLabel>
+                <Select
+                  value={newTicket.building}
+                  label="Building"
+                  onChange={(e) => setNewTicket(prev => ({ ...prev, building: e.target.value }))}
+                >
+                  <MenuItem value="">Select building</MenuItem>
+                  <MenuItem value="Main Academic Block">Main Academic Block</MenuItem>
+                  <MenuItem value="Science & Technology Centre">Science & Technology Centre</MenuItem>
+                  <MenuItem value="Creative Arts Centre">Creative Arts Centre</MenuItem>
+                  <MenuItem value="Library & Resource Centre">Library & Resource Centre</MenuItem>
+                  <MenuItem value="Administration Block">Administration Block</MenuItem>
+                  <MenuItem value="Student Centre">Student Centre</MenuItem>
+                  <MenuItem value="Hospitality Training Centre">Hospitality Training Centre</MenuItem>
+                  <MenuItem value="Sports Complex">Sports Complex</MenuItem>
+                  <MenuItem value="Health & Wellness Centre">Health & Wellness Centre</MenuItem>
+                  <MenuItem value="IT Building">IT Building</MenuItem>
+                  <MenuItem value="Makhaya Hall">Makhaya Hall</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Room Number / Description"
+                value={newTicket.roomNumber}
+                onChange={(e) => setNewTicket(prev => ({ ...prev, roomNumber: e.target.value }))}
+                placeholder="e.g., Room 101, Ground Floor"
+              />
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 multiline
+
                 rows={4}
                 label="Description"
                 value={newTicket.description}
@@ -450,6 +567,45 @@ const SupportTickets: React.FC = () => {
             disabled={!newTicket.title || !newTicket.description}
           >
             Create Ticket
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={successDialogOpen} onClose={() => setSuccessDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <CheckCircle color="success" />
+            <Typography variant="h6">Report Submitted Successfully</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box textAlign="center" py={3}>
+            <Typography variant="h3" fontWeight="bold" color="primary" gutterBottom>
+              {ticketNumber}
+            </Typography>
+            <Typography variant="body1" paragraph>
+              Your issue has been received. Use this ticket number to track the status.
+            </Typography>
+            <Alert severity="info" sx={{ textAlign: 'left' }}>
+              <Typography variant="body2">
+                <strong>Next steps:</strong> Our team will review your report and update the status.
+                You will receive an email notification when the status changes.
+              </Typography>
+            </Alert>
+            <Box mt={2}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Track your ticket status from <strong>My Reports</strong> tab
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <Button variant="contained" onClick={() => setSuccessDialogOpen(false)}>
+            Done
+          </Button>
+          <Button variant="outlined" onClick={() => { setSuccessDialogOpen(false); setViewDialogOpen(false); }}>
+            Track My Report
           </Button>
         </DialogActions>
       </Dialog>

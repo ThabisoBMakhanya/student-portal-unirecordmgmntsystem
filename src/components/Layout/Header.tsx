@@ -26,11 +26,13 @@ import {
   DarkMode,
   LightMode,
 } from '@mui/icons-material';
-import { useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 
 import { useAuthStore } from '@/stores/authStore';
+import { useThemeStore } from '@/stores/themeStore';
 import authService from '@/services/authService';
+import apiClient from '@/services/api';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -43,6 +45,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { user, logout } = useAuthStore();
+  const { toggleTheme: themeToggle } = useThemeStore();
 
   const logoutMutation = useMutation({
     mutationFn: authService.logout,
@@ -89,13 +92,26 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
     handleProfileMenuClose();
   };
 
-  const handleNotificationClick = () => {
-    navigate('/notifications');
+  const handleViewAllNotifications = () => {
     handleNotificationMenuClose();
+    navigate('/notifications');
   };
 
-  // Mock notifications count
-  const notificationCount = 3;
+  const { data: notifData } = useQuery({
+    queryKey: ['notif-count'],
+    queryFn: () => apiClient.get('/notifications/unread-count').then(r => r.data?.data?.unreadCount ?? 0),
+    refetchInterval: 30000,
+  });
+  const notificationCount = notifData ?? 0;
+
+  const { data: recentNotifs = [] } = useQuery({
+    queryKey: ['notif-preview'],
+    queryFn: () => apiClient.get('/notifications').then(r => {
+      const items = r.data?.data?.notifications ?? [];
+      return items.slice(0, 3).map((n: any) => ({ id: n.id || n._id, title: n.title, message: n.message }));
+    }),
+    refetchInterval: 30000,
+  });
 
   return (
     <AppBar
@@ -133,8 +149,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
           )}
         </Box>
 
-        {/* Academic Info (Desktop) */}
-        {!isMobile && user && (
+        {/* Academic Info (Desktop - students only) */}
+        {!isMobile && user && user.role === 'student' && (
           <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
             <School sx={{ mr: 1, color: 'primary.main' }} />
             <Box>
@@ -163,7 +179,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
 
         {/* Theme Toggle */}
         <Tooltip title="Toggle theme">
-          <IconButton color="inherit" sx={{ mr: 1 }}>
+          <IconButton color="inherit" sx={{ mr: 1 }} onClick={themeToggle}>
             {theme.palette.mode === 'dark' ? <LightMode /> : <DarkMode />}
           </IconButton>
         </Tooltip>
@@ -175,8 +191,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
             sx={{ p: 0 }}
           >
             <Avatar
-              sx={{ width: 40, height: 40 }}
-              src={user?.personalInfo?.profilePicture}
+              sx={{ width: 40, height: 40, bgcolor: user?.role === 'admin' ? 'transparent' : undefined }}
+              src={user?.role === 'admin' ? '/admin-logo.png' : user?.personalInfo?.profilePicture}
             >
               {user?.personalInfo?.firstName?.[0]}{user?.personalInfo?.lastName?.[0]}
             </Avatar>
@@ -216,7 +232,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
                 {user?.email}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {user?.academicInfo?.studentId}
+                {user?.role === 'admin' ? 'Administrator' : (user?.academicInfo?.studentId ?? '')}
               </Typography>
             </Box>
           )}
@@ -268,26 +284,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
             </Typography>
           </Box>
           <Divider />
-          <MenuItem onClick={handleNotificationClick}>
-            <ListItemText
-              primary="New grade posted"
-              secondary="CS101 - Introduction to Computer Science"
-            />
-          </MenuItem>
-          <MenuItem onClick={handleNotificationClick}>
-            <ListItemText
-              primary="Payment reminder"
-              secondary="Tuition fee due in 3 days"
-            />
-          </MenuItem>
-          <MenuItem onClick={handleNotificationClick}>
-            <ListItemText
-              primary="Course enrollment"
-              secondary="Registration opens tomorrow"
-            />
-          </MenuItem>
+          {recentNotifs.length === 0 ? (
+            <MenuItem disabled>
+              <ListItemText primary="No new notifications" secondary="" />
+            </MenuItem>
+          ) : (
+            recentNotifs.map((n: any) => (
+              <MenuItem key={n.id} onClick={handleViewAllNotifications}>
+                <ListItemText primary={n.title} secondary={n.message} />
+              </MenuItem>
+            ))
+          )}
           <Divider />
-          <MenuItem onClick={handleNotificationClick}>
+          <MenuItem onClick={handleViewAllNotifications}>
             <ListItemText
               primary="View all notifications"
               sx={{ textAlign: 'center', color: 'primary.main' }}
@@ -310,6 +319,8 @@ const getPageTitle = (pathname: string): string => {
     '/profile': 'My Profile',
     '/notifications': 'Notifications',
     '/settings': 'Settings',
+    '/staff': 'Staff Directory',
+    '/campus-map': 'Campus Map',
   };
 
   return titles[pathname] || 'Student Portal';

@@ -8,7 +8,6 @@ import {
   FormControlLabel,
   Checkbox,
   Link,
-  Alert,
   InputAdornment,
   IconButton,
   Divider,
@@ -19,7 +18,6 @@ import {
   VisibilityOff,
   Email,
   Lock,
-  School,
   Login as LoginIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
@@ -75,6 +73,10 @@ const LoginPage: React.FC = () => {
       navigate(from, { replace: true });
     },
     onError: (error: any) => {
+      if (!error.response && (error.code === 'ERR_NETWORK' || error.message === 'Network Error')) {
+        toast.error('Cannot reach server. Check connection or use Demo credentials.');
+        return;
+      }
       const message = error.response?.data?.message || 'Login failed. Please try again.';
 
       if (error.response?.status === 401) {
@@ -102,17 +104,14 @@ const LoginPage: React.FC = () => {
     <Box>
       {/* Header */}
       <Box textAlign="center" mb={4}>
-        <Avatar
-          sx={{
-            width: 64,
-            height: 64,
-            bgcolor: 'primary.main',
-            mx: 'auto',
-            mb: 2,
-          }}
-        >
-          <School sx={{ fontSize: 32 }} />
-        </Avatar>
+        <Box sx={{ mx: 'auto', mb: 2, width: 200, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#1a1a2e', borderRadius: 2, p: 1 }}>
+          <Box
+            component="img"
+            src="/logo-dark.webp"
+            alt="Limkokwing Logo"
+            sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+          />
+        </Box>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
           Student Portal
         </Typography>
@@ -221,19 +220,26 @@ const LoginPage: React.FC = () => {
           </Link>
         </Box>
 
+        <Box textAlign="center" mb={3}>
+          <Typography variant="body2" color="text.secondary">
+            Don't have an account?{' '}
+            <Link
+              component={RouterLink}
+              to="/register"
+              variant="body2"
+              fontWeight="bold"
+              underline="hover"
+            >
+              Register Now
+            </Link>
+          </Typography>
+        </Box>
+
         <Divider sx={{ mb: 3 }}>
           <Typography variant="body2" color="text.secondary">
             Need help?
           </Typography>
         </Divider>
-
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            <strong>Demo Credentials:</strong><br />
-            Email: student@university.edu<br />
-            Password: password123
-          </Typography>
-        </Alert>
 
         <Box textAlign="center">
           <Typography variant="body2" color="text.secondary">

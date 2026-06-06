@@ -13,17 +13,28 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'background.default',
-        backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: 'url("/login-bg.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          filter: 'brightness(0.4)',
+        },
       }}
     >
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
         <Paper
           elevation={3}
           sx={{
             p: 4,
             borderRadius: 2,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+            bgcolor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
           }}
         >
           {children}

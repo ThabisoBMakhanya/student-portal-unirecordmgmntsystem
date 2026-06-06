@@ -29,6 +29,13 @@ const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
+  // Redirect admin users to admin dashboard
+  React.useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
+
   // Use real API queries
   const statsQuery = useQuery({
   queryKey: ['student-stats', user?._id],
@@ -79,7 +86,7 @@ const DashboardPage: React.FC = () => {
       {/* Welcome Header */}
       <Box mb={4}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          {getGreeting()}, {user?.personalInfo?.firstName}! 👋
+          {getGreeting()}, {user?.personalInfo?.firstName}!
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Here's what's happening with your academic journey today.

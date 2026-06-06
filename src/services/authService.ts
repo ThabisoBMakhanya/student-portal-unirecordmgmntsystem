@@ -62,10 +62,8 @@ export const authService = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     try {
       const response = await apiClient.post<ApiResponse<LoginResponse>>('/auth/login', credentials);
-      console.log('authService.login response.data:', response.data);
-      console.log('authService.login response.data.data:', response.data.data);
       return response.data.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
       throw error;
     }

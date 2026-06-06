@@ -97,8 +97,8 @@ export const useRBACStore = create<RBACState>()(
             return cached;
           }
 
-          // Check if user has the permission
-          const hasPermission = state.effectivePermissions.includes(permission);
+          // Check if user has the permission (wildcard '*' grants all)
+          const hasPermission = state.effectivePermissions.includes('*') || state.effectivePermissions.includes(permission);
           
           // Cache the result
           state.setCachedPermission(cacheKey, hasPermission);

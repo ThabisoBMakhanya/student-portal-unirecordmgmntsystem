@@ -63,14 +63,26 @@ export const useAuthStore = create<AuthStore>()(
         if (!user) return;
 
         try {
-          // In a real app, this would make an API call
-          // For now, we'll use mock data based on user role
           const rbacStore = useRBACStore.getState();
+          const isAdmin = user.role === 'admin';
 
-          // Mock user permissions based on role
           const mockUserPermissions = {
             userId: user._id,
-            roles: [
+            roles: isAdmin ? [
+              {
+                _id: 'admin_role',
+                name: 'admin',
+                description: 'Administrator role with full access',
+                permissions: ['*'],
+                isSystemRole: true,
+                isActive: true,
+                category: 'administrative' as const,
+                level: 99,
+                createdBy: 'system',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }
+            ] : [
               {
                 _id: 'student_role',
                 name: 'Student',
@@ -85,42 +97,14 @@ export const useAuthStore = create<AuthStore>()(
                 updatedAt: new Date().toISOString(),
               }
             ],
-            permissions: [
-              {
-                _id: 'courses:read',
-                name: 'View Courses',
-                resource: 'courses',
-                action: 'read' as const,
-                description: 'View course information',
-                category: 'academic' as const,
-                isActive: true,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-              {
-                _id: 'grades:read',
-                name: 'View Grades',
-                resource: 'grades',
-                action: 'read' as const,
-                description: 'View grade information',
-                category: 'academic' as const,
-                isActive: true,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-              {
-                _id: 'payments:read',
-                name: 'View Payments',
-                resource: 'payments',
-                action: 'read' as const,
-                description: 'View payment information',
-                category: 'financial' as const,
-                isActive: true,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              }
+            permissions: isAdmin ? [
+              { _id: 'admin:all', name: 'Full Access', resource: '*', action: '*' as const, description: 'Administrator full access', category: 'administrative' as const, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            ] : [
+              { _id: 'courses:read', name: 'View Courses', resource: 'courses', action: 'read' as const, description: 'View course information', category: 'academic' as const, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+              { _id: 'grades:read', name: 'View Grades', resource: 'grades', action: 'read' as const, description: 'View grade information', category: 'academic' as const, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+              { _id: 'payments:read', name: 'View Payments', resource: 'payments', action: 'read' as const, description: 'View payment information', category: 'financial' as const, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
             ],
-            effectivePermissions: ['courses:read', 'grades:read', 'payments:read'],
+            effectivePermissions: isAdmin ? ['*'] : ['courses:read', 'grades:read', 'payments:read'],
             lastUpdated: new Date().toISOString(),
             cacheExpiry: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
           };
@@ -128,17 +112,14 @@ export const useAuthStore = create<AuthStore>()(
           rbacStore.setUserPermissions(mockUserPermissions);
         } catch (error) {
           console.error('Failed to load user permissions:', error);
-          // Optionally, set an error state here if needed
         }
       },
 
       updateUser: (userData: Partial<User>) => {
         const currentUser = get().user;
-        if (currentUser) {
-          set({
-            user: { ...currentUser, ...userData },
-          });
-        }
+        set({
+          user: currentUser ? { ...currentUser, ...userData } : userData as User,
+        });
       },
 
       setLoading: (loading: boolean) => {
@@ -162,62 +143,9 @@ export const useAuthStore = create<AuthStore>()(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        console.log('AuthStore rehydrated with token:', state?.token);
-        // Set loading to false after rehydration
         if (state) {
-          state.isLoading = false;
-
-          // For demo purposes, if we have a token but no user, create a mock user
-          if (state.token && !state.user) {
-            const mockUser = {
-              _id: '1',
-              email: 'student@university.edu',
-              role: 'student' as const,
-              status: 'active' as const,
-              personalInfo: {
-                firstName: 'John',
-                lastName: 'Doe',
-                middleName: 'Michael',
-                dateOfBirth: '2000-05-15',
-                gender: 'male' as const,
-                nationality: 'Nigerian',
-                profilePicture: '',
-              },
-              contactInfo: {
-                phone: '+234-801-234-5678',
-                alternatePhone: '+234-802-345-6789',
-                address: {
-                  street: '123 University Road',
-                  city: 'Lagos',
-                  state: 'Lagos State',
-                  country: 'Nigeria',
-                  postalCode: '100001',
-                },
-                emergencyContact: {
-                  name: 'Jane Doe',
-                  relationship: 'Mother',
-                  phone: '+234-803-456-7890',
-                },
-              },
-              academicInfo: {
-                studentId: 'STU2024001',
-                program: 'Bachelor of Science in Computer Science',
-                department: 'Computer Science',
-                faculty: 'Faculty of Science',
-                level: '300 Level',
-                admissionDate: '2022-09-01',
-                expectedGraduationDate: '2026-07-31',
-                currentSemester: 'Fall',
-                academicYear: '2024',
-                gpa: 3.75,
-                totalCredits: 120,
-                completedCredits: 75,
-              },
-              createdAt: '2022-09-01T00:00:00.000Z',
-              updatedAt: new Date().toISOString(),
-            };
-            state.user = mockUser;
-          }
+          state.setLoading(false);
+          state.loadUserPermissions();
         }
       },
     }

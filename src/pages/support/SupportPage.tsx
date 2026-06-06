@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 
-import supportService from '@/services/supportService';
+import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
 import SupportTickets from '@/components/Support/SupportTickets';
 import LiveChat from '@/components/Support/LiveChat';
@@ -65,27 +65,26 @@ const SupportPage: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { user } = useAuthStore();
 
-  // Mock support statistics
-  const mockSupportStats = {
-    totalTickets: 12,
-    openTickets: 3,
-    resolvedTickets: 9,
-    averageResponseTime: 4.5,
-    satisfactionRating: 4.2,
-  };
+  const supportStatsQuery = useQuery({
+    queryKey: ['supportStats'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/student/support/tickets/stats');
+      return response.data.data;
+    },
+  });
 
-  // Mock unread counts
-  const mockUnreadCounts = {
-    announcements: 5,
-    messages: 2,
-    tickets: 1,
-  };
+  const announcementsQuery = useQuery({
+    queryKey: ['announcementsUnread'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/student/announcements?limit=1');
+      return response.data.data;
+    },
+  });
 
-  // Mock query
-  const supportStatsQuery = {
-    data: mockSupportStats,
-    isLoading: false,
-    error: null,
+  const unreadCounts = {
+    announcements: announcementsQuery.data?.unreadCount ?? 0,
+    messages: 0,
+    tickets: 0,
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -105,7 +104,7 @@ const SupportPage: React.FC = () => {
     handleMenuClose();
   };
 
-  if (supportStatsQuery.isLoading) {
+  if (supportStatsQuery.isLoading || announcementsQuery.isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <LoadingSpinner message="Loading support information..." />
@@ -208,7 +207,7 @@ const SupportPage: React.FC = () => {
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="support tabs">
           <Tab
             label={
-              <Badge badgeContent={mockUnreadCounts.tickets} color="error">
+              <Badge badgeContent={unreadCounts.tickets} color="error">
                 <Box display="flex" alignItems="center" gap={1}>
                   <Support />
                   <span>Help Desk</span>
@@ -220,7 +219,7 @@ const SupportPage: React.FC = () => {
           />
           <Tab
             label={
-              <Badge badgeContent={mockUnreadCounts.messages} color="error">
+              <Badge badgeContent={unreadCounts.messages} color="error">
                 <Box display="flex" alignItems="center" gap={1}>
                   <Chat />
                   <span>Live Chat</span>
@@ -232,7 +231,7 @@ const SupportPage: React.FC = () => {
           />
           <Tab
             label={
-              <Badge badgeContent={mockUnreadCounts.announcements} color="error">
+              <Badge badgeContent={unreadCounts.announcements} color="error">
                 <Box display="flex" alignItems="center" gap={1}>
                   <Announcement />
                   <span>Announcements</span>

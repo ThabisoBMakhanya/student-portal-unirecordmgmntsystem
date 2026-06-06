@@ -233,4 +233,10 @@ export const StudentRoute: React.FC<{ children: React.ReactNode }> = ({ children
   </RouteGuard>
 );
 
+export const LecturerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <RouteGuard roles={['staff']} showAccessDenied>
+    {children}
+  </RouteGuard>
+);
+
 export { AccessDeniedPage };

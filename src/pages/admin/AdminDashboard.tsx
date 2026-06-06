@@ -25,11 +25,13 @@ import {
   CheckCircle,
   Schedule,
   AdminPanelSettings,
+  School,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import rbacService from '@/services/rbacService';
+import { apiClient } from '@/services/api';
 import PermissionGuard from '@/components/RBAC/PermissionGuard';
 import { useRBACStore } from '@/stores/rbacStore';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -45,41 +47,30 @@ const AdminDashboard: React.FC = () => {
     enabled: isAdmin(),
   });
 
-  // Mock recent activities
-  const recentActivities = [
-    {
-      id: '1',
-      action: 'Role Assigned',
-      user: 'John Doe',
-      role: 'Finance Officer',
-      timestamp: '2024-01-16T10:30:00Z',
-      type: 'assignment',
+  const deriveActivityType = (action: string): string => {
+    const lower = action.toLowerCase();
+    if (lower.includes('assign')) return 'assignment';
+    if (lower.includes('create') || lower.includes('add') || lower.includes('new')) return 'creation';
+    if (lower.includes('denied') || lower.includes('access') || lower.includes('security') || lower.includes('unauthor')) return 'security';
+    if (lower.includes('update') || lower.includes('edit') || lower.includes('modify')) return 'update';
+    return 'update';
+  };
+
+  const auditLogsQuery = useQuery({
+    queryKey: ['admin-audit-logs'],
+    queryFn: async () => {
+      const response = await apiClient.get('/admin/audit-logs');
+      return response.data.data.logs.map((log: any) => ({
+        id: log.id,
+        action: log.action,
+        user: log.details?.user_name || log.user_id,
+        role: log.entity_type,
+        timestamp: log.created_at,
+        type: deriveActivityType(log.action),
+      }));
     },
-    {
-      id: '2',
-      action: 'Permission Updated',
-      user: 'Jane Smith',
-      role: 'Academic Coordinator',
-      timestamp: '2024-01-16T09:15:00Z',
-      type: 'update',
-    },
-    {
-      id: '3',
-      action: 'Role Created',
-      user: 'Admin',
-      role: 'Department Head',
-      timestamp: '2024-01-15T16:45:00Z',
-      type: 'creation',
-    },
-    {
-      id: '4',
-      action: 'User Access Denied',
-      user: 'Bob Johnson',
-      role: 'Student Portal',
-      timestamp: '2024-01-15T14:20:00Z',
-      type: 'security',
-    },
-  ];
+    enabled: isAdmin(),
+  });
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -218,13 +209,13 @@ const AdminDashboard: React.FC = () => {
 
           {/* Quick Actions */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
+            <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   Quick Actions
                 </Typography>
                 
-                <Grid container spacing={2}>
+                <Grid container spacing={2} sx={{ flex: 1, alignContent: 'flex-start' }}>
                   <PermissionGuard permission="roles:create">
                     <Grid item xs={12} sm={6}>
                       <Button
@@ -244,7 +235,7 @@ const AdminDashboard: React.FC = () => {
                         fullWidth
                         variant="outlined"
                         startIcon={<Assignment />}
-                        onClick={() => navigate('/admin/user-roles')}
+                        onClick={() => navigate('/admin/users')}
                       >
                         Assign Roles
                       </Button>
@@ -264,15 +255,28 @@ const AdminDashboard: React.FC = () => {
                     </Grid>
                   </PermissionGuard>
 
-                  <PermissionGuard permission="system:admin">
+                  <PermissionGuard permission="roles:create">
                     <Grid item xs={12} sm={6}>
                       <Button
                         fullWidth
                         variant="outlined"
                         startIcon={<Security />}
-                        onClick={() => navigate('/admin/permissions')}
+                        onClick={() => navigate('/admin/roles')}
                       >
-                        Permissions
+                        Manage Permissions
+                      </Button>
+                    </Grid>
+                  </PermissionGuard>
+
+                  <PermissionGuard permission="users:read">
+                    <Grid item xs={12} sm={6}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={<School />}
+                        onClick={() => navigate('/admin/staff')}
+                      >
+                        Staff Management
                       </Button>
                     </Grid>
                   </PermissionGuard>
@@ -281,60 +285,16 @@ const AdminDashboard: React.FC = () => {
             </Card>
           </Grid>
 
-          {/* Recent Activity */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
-                  Recent Activity
-                </Typography>
-                
-                <List sx={{ p: 0 }}>
-                  {recentActivities.map((activity, index) => (
-                    <React.Fragment key={activity.id}>
-                      <ListItem sx={{ px: 0 }}>
-                        <ListItemIcon>
-                          {getActivityIcon(activity.type)}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {activity.action}
-                              </Typography>
-                              <Chip
-                                label={activity.type}
-                                size="small"
-                                color={getActivityColor(activity.type) as any}
-                                variant="outlined"
-                              />
-                            </Box>
-                          }
-                          secondary={
-                            <Typography variant="caption" color="text.secondary">
-                              {activity.user} • {activity.role} • {new Date(activity.timestamp).toLocaleString()}
-                            </Typography>
-                          }
-                        />
-                      </ListItem>
-                      {index < recentActivities.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
-
           {/* Most Used Roles */}
           {analyticsQuery.data?.mostUsedRoles && (
             <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
+              <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>
                     Most Used Roles
                   </Typography>
                   
-                  <List sx={{ p: 0 }}>
+                  <List sx={{ p: 0, flex: 1 }}>
                     {analyticsQuery.data.mostUsedRoles.slice(0, 5).map((role, index) => (
                       <React.Fragment key={role.roleId}>
                         <ListItem sx={{ px: 0 }}>
@@ -363,15 +323,65 @@ const AdminDashboard: React.FC = () => {
             </Grid>
           )}
 
+          {/* Recent Activity */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                  Recent Activity
+                </Typography>
+                
+                {auditLogsQuery.isLoading ? (
+                  <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+                    <LoadingSpinner message="Loading recent activity..." />
+                  </Box>
+                ) : (
+                  <List sx={{ p: 0, flex: 1 }}>
+                    {(auditLogsQuery.data ?? []).map((activity, index) => (
+                      <React.Fragment key={activity.id}>
+                        <ListItem sx={{ px: 0 }}>
+                          <ListItemIcon>
+                            {getActivityIcon(activity.type)}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {activity.action}
+                                </Typography>
+                                <Chip
+                                  label={activity.type}
+                                  size="small"
+                                  color={getActivityColor(activity.type) as any}
+                                  variant="outlined"
+                                />
+                              </Box>
+                            }
+                            secondary={
+                              <Typography variant="caption" color="text.secondary">
+                                {activity.user} • {activity.role} • {new Date(activity.timestamp).toLocaleString()}
+                              </Typography>
+                            }
+                          />
+                        </ListItem>
+                        {index < (auditLogsQuery.data?.length ?? 0) - 1 && <Divider />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
           {/* System Health */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
+            <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   System Health
                 </Typography>
                 
-                <Grid container spacing={2}>
+                <Grid container spacing={2} sx={{ flex: 1, alignContent: 'center' }}>
                   <Grid item xs={6}>
                     <Box textAlign="center">
                       <Typography variant="h4" color="success.main" fontWeight="bold">
@@ -386,7 +396,7 @@ const AdminDashboard: React.FC = () => {
                   <Grid item xs={6}>
                     <Box textAlign="center">
                       <Typography variant="h4" color="info.main" fontWeight="bold">
-                        <100ms
+                        {'<100ms'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Avg Response Time

@@ -27,7 +27,7 @@ export interface PaginationInfo {
 export interface User {
   _id: string;
   email: string;
-  role: 'student';
+  role: 'student' | 'admin' | 'staff';
   status: 'active' | 'inactive' | 'suspended' | 'graduated';
   personalInfo: {
     firstName: string;
@@ -308,5 +308,129 @@ export interface PaymentFilters {
   paymentMethod?: string;
   dateFrom?: string;
   dateTo?: string;
+  minAmount?: number;
+  maxAmount?: number;
   search?: string;
+}
+
+// Staff Directory Types
+export interface StaffMember {
+  _id: string;
+  employeeId: string;
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    email: string;
+    phone?: string;
+    profilePicture?: string;
+  };
+  professionalInfo: {
+    title: string;
+    department: string;
+    faculty: string;
+    officeLocation: {
+      building: string;
+      room: string;
+      campus: string;
+    };
+    consultationHours: Array<{
+      day: string;
+      startTime: string;
+      endTime: string;
+      location?: string;
+      type: 'in_person' | 'virtual' | 'both';
+    }>;
+    biography?: string;
+    specializations: string[];
+    coursesTeaching: string[];
+  };
+  status: 'active' | 'on_leave' | 'retired';
+  hireDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffFilters {
+  department?: string;
+  faculty?: string;
+  title?: string;
+  search?: string;
+  status?: string;
+}
+
+export interface AppointmentRequest {
+  _id: string;
+  student: string;
+  staff: string;
+  scheduledAt: string;
+  duration: number;
+  type: 'in_person' | 'virtual' | 'phone';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
+  agenda?: string[];
+  meetingLink?: string;
+  location?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Campus Map Types
+export interface CampusBuilding {
+  _id: string;
+  name: string;
+  code: string;
+  description?: string;
+  category: 'academic' | 'administrative' | 'library' | 'cafeteria' | 'parking' | 'residential' | 'sports' | 'health' | 'other';
+  location: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  };
+  floors: number;
+  rooms: Array<{
+    _id: string;
+    name: string;
+    floor: number;
+    type: 'classroom' | 'lab' | 'office' | 'meeting_room' | 'auditorium' | 'library' | 'cafeteria' | 'restroom' | 'other';
+    capacity?: number;
+    equipment?: string[];
+  }>;
+  facilities: string[];
+  images: string[];
+  isAccessible: boolean;
+  openingHours?: {
+    monday?: { open: string; close: string; closed: boolean };
+    tuesday?: { open: string; close: string; closed: boolean };
+    wednesday?: { open: string; close: string; closed: boolean };
+    thursday?: { open: string; close: string; closed: boolean };
+    friday?: { open: string; close: string; closed: boolean };
+    saturday?: { open: string; close: string; closed: boolean };
+    sunday?: { open: string; close: string; closed: boolean };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampusMapLayer {
+  id: string;
+  name: string;
+  description: string;
+  buildings: string[]; // Building IDs
+  color: string;
+  icon?: string;
+  visible: boolean;
+}
+
+export interface NavigationRoute {
+  from: { latitude: number; longitude: number; name: string };
+  to: { latitude: number; longitude: number; name: string };
+  distance: number; // meters
+  duration: number; // seconds
+  steps: Array<{
+    instruction: string;
+    distance: number;
+    duration: number;
+    maneuver?: string;
+  }>;
 }
